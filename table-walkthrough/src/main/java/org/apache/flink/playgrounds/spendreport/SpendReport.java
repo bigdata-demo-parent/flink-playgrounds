@@ -29,7 +29,15 @@ import static org.apache.flink.table.api.Expressions.*;
 public class SpendReport {
 
     public static Table report(Table transactions) {
-        throw new UnimplementedException();
+        return transactions.select(
+                        $("account_id"),
+                        $("transaction_time").floor(TimeIntervalUnit.HOUR).as("log_ts"),
+                        $("amount"))
+                .groupBy($("account_id"), $("log_ts"))
+                .select(
+                        $("account_id"),
+                        $("log_ts"),
+                        $("amount").sum().as("amount"));
     }
 
     public static void main(String[] args) throws Exception {
@@ -44,7 +52,8 @@ public class SpendReport {
                 ") WITH (\n" +
                 "    'connector' = 'kafka',\n" +
                 "    'topic'     = 'transactions',\n" +
-                "    'properties.bootstrap.servers' = 'kafka:9092',\n" +
+                "    'properties.bootstrap.servers' = '192.168.13.36:9092,192.168.13.37:9092,192.168.13.38:9092',\n" +
+                "    'properties.group.id' = 'testGroup',\n" +
                 "    'scan.startup.mode' = 'earliest-offset',\n" +
                 "    'format'    = 'csv'\n" +
                 ")");
@@ -56,11 +65,11 @@ public class SpendReport {
                 "    PRIMARY KEY (account_id, log_ts) NOT ENFORCED" +
                 ") WITH (\n" +
                 "  'connector'  = 'jdbc',\n" +
-                "  'url'        = 'jdbc:mysql://mysql:3306/sql-demo',\n" +
+                "  'url'        = 'jdbc:mysql://192.168.13.34:3306/test',\n" +
                 "  'table-name' = 'spend_report',\n" +
                 "  'driver'     = 'com.mysql.jdbc.Driver',\n" +
-                "  'username'   = 'sql-demo',\n" +
-                "  'password'   = 'demo-sql'\n" +
+                "  'username'   = 'root',\n" +
+                "  'password'   = 'xxx'\n" +
                 ")");
 
         Table transactions = tEnv.from("transactions");
